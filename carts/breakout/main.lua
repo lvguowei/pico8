@@ -14,6 +14,21 @@ function _update60()
   end
 end
 
+function buildbricks()
+  brick_x = {}
+  brick_y = {}
+  brick_v = {}
+
+  local i
+
+  for i = 1, 8 do
+    add(brick_x, 5 + (i - 1) * (brick_w + 2))
+    add(brick_y, 20)
+    add(brick_v, true)
+  end
+end
+
+
 function serveball()
   ball_r = 8
   ball_x = 10
@@ -47,10 +62,11 @@ function startgame()
   pad_w = 24
   pad_h = 3
 
-  brick_x = 5
-  brick_y = 120
   brick_w = 13
   brick_h = 4
+
+  buildbricks()
+
 
   lives = 3
   points = 0
@@ -107,6 +123,7 @@ function update_game()
     end
   end
 
+  -- check if ball hit pad
   if ball_box(nextx, nexty, pad_x, pad_y, pad_w, pad_h) then
     if deflx_ballbox(ball_x, ball_y, ball_dx, ball_dy, pad_x, pad_y, pad_w, pad_h) then
       ball_dx =- ball_dx
@@ -115,6 +132,20 @@ function update_game()
     end
     sfx(1)
     points += 1
+  end
+
+  -- check if ball hit brick
+  for i = 1, #brick_x do
+    if brick_v[i] and ball_box(nextx, nexty, brick_x[i], brick_y[i], brick_w, brick_h) then
+      if deflx_ballbox(ball_x, ball_y, ball_dx, ball_dy, brick_x[i], brick_y[i], brick_w, brick_h) then
+        ball_dx =- ball_dx
+      else
+        ball_dy =- ball_dy
+      end
+      sfx(3)
+      points += 1
+      brick_v[i] = false
+    end
   end
 
   ball_x = nextx
@@ -138,7 +169,11 @@ function draw_game()
   rectfill(0, 0, 128, bar_h, 0)
 
   -- draw bricks
-  rectfill(brick_x, brick_x, brick_w, brick_h)
+  for i = 1, #brick_x do
+    if brick_v[i] then
+      rectfill(brick_x[i], brick_y[i], brick_x[i] + brick_w, brick_y[i] + brick_h, 14)
+    end
+  end
 
   print("lives:"..lives, 1, 1, 7)
   print("points:"..points, 40, 1, 7)
