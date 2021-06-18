@@ -1,4 +1,3 @@
-
 function _init()
   cls()
   mode = "start"
@@ -30,10 +29,11 @@ end
 
 
 function serveball()
-  ball_x = 10
+  ball_x = pad_x + flr(pad_w / 2)
+  ball_y = pad_y - ball_r - 1
   ball_dx = 1
-  ball_y = 70
-  ball_dy = 1
+  ball_dy = -1
+  sticky = true
 end
 
 function gameover()
@@ -74,6 +74,8 @@ function startgame()
   points = 0
   bar_h = 6
 
+  sticky = true
+
   serveball()
 end
 
@@ -85,88 +87,106 @@ function update_game()
     --left
     buttpressed = true
     pad_dx = -2
+
+    if sticky then
+      ball_dx = -1
+    end
   end
 
   if btn(1) then
     --right
     buttpressed = true
     pad_dx = 2
+
+    if sticky then
+      ball_dx = 1
+    end
   end
 
   if not(buttpressed) then
     pad_dx = pad_dx / 2
   end
 
+  if sticky and btnp(4) then
+    sticky = false
+  end
+
   pad_x += pad_dx
   pad_x = mid(0, pad_x, 127 - pad_w)
 
-  nextx = ball_x + ball_dx
-  nexty = ball_y + ball_dy
+  if sticky then
+    ball_x = pad_x + flr(pad_w / 2)
+    ball_y = pad_y - ball_r - 1
+  else
+    -- regular ball physics
+    nextx = ball_x + ball_dx
+    nexty = ball_y + ball_dy
 
-  if nextx > 127 - ball_r or nextx < ball_r then
-    nextx = mid(ball_r,nextx,127 - ball_r)
-    ball_dx = -ball_dx
-    sfx(0)
-  end
-  if nexty < bar_h + ball_r then
-    nexty = mid(bar_h + ball_r, nexty, 127 - ball_r)
-    ball_dy =- ball_dy
-    sfx(0)
-  end
-
-  if nexty > 127 - ball_r then
-    if (lives == 1) then
-      gameover()
-    else
-      sfx(2)
-      lives -= 1
-      serveball()
-      return
-    end
-  end
-
-  -- check if ball hit pad
-  if ball_box(nextx,nexty,pad_x,pad_y,pad_w,pad_h) then
-    -- deal with collision
-    if deflx_ball_box(ball_x,ball_y,ball_dx,ball_dy,pad_x,pad_y,pad_w,pad_h) then
+    if nextx > 127 - ball_r or nextx < ball_r then
+      nextx = mid(ball_r,nextx,127 - ball_r)
       ball_dx = -ball_dx
-      if ball_x < pad_x+pad_w/2 then
-        nextx=pad_x-ball_r
-      else
-        nextx=pad_x+pad_w+ball_r
-      end
-    else
-      ball_dy = -ball_dy
-      if ball_y > pad_y then
-        nexty=pad_y+pad_h+ball_r
-      else
-        nexty=pad_y-ball_r
-      end
+      sfx(0)
     end
-    sfx(1)
-    points+=1
-  end
+    if nexty < bar_h + ball_r then
+      nexty = mid(bar_h + ball_r, nexty, 127 - ball_r)
+      ball_dy =- ball_dy
+      sfx(0)
+    end
 
-  -- check if ball hit brick
-  brickhit = false
-  for i = 1, #brick_x do
-    if brick_v[i] and ball_box(nextx, nexty, brick_x[i], brick_y[i], brick_w, brick_h) then
-      if not(brickhit) then
-        if deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, brick_x[i], brick_y[i], brick_w, brick_h) then
-          ball_dx =- ball_dx
+    -- check if ball hit pad
+    if ball_box(nextx,nexty,pad_x,pad_y,pad_w,pad_h) then
+      -- deal with collision
+      if deflx_ball_box(ball_x,ball_y,ball_dx,ball_dy,pad_x,pad_y,pad_w,pad_h) then
+        ball_dx = -ball_dx
+        if ball_x < pad_x+pad_w/2 then
+          nextx=pad_x-ball_r
         else
-          ball_dy =- ball_dy
+          nextx=pad_x+pad_w+ball_r
+        end
+      else
+        ball_dy = -ball_dy
+        if ball_y > pad_y then
+          nexty=pad_y+pad_h+ball_r
+        else
+          nexty=pad_y-ball_r
         end
       end
-      brickhit = true
-      sfx(3)
-      points += 1
-      brick_v[i] = false
+      sfx(1)
+      points+=1
+    end
+
+
+    -- check if ball hit brick
+    brickhit = false
+    for i = 1, #brick_x do
+      if brick_v[i] and ball_box(nextx, nexty, brick_x[i], brick_y[i], brick_w, brick_h) then
+        if not(brickhit) then
+          if deflx_ball_box(ball_x, ball_y, ball_dx, ball_dy, brick_x[i], brick_y[i], brick_w, brick_h) then
+            ball_dx =- ball_dx
+          else
+            ball_dy =- ball_dy
+          end
+        end
+        brickhit = true
+        sfx(3)
+        points += 1
+        brick_v[i] = false
+      end
+    end
+
+    ball_x = nextx
+    ball_y = nexty
+
+    if nexty > 127 then
+      sfx(2)
+      lives -= 1
+      if lives < 0 then
+        gameover()
+      else
+        serveball()
+      end
     end
   end
-
-  ball_x = nextx
-  ball_y = nexty
 end
 
 function _draw()
@@ -184,6 +204,9 @@ function draw_game()
   circfill(ball_x, ball_y, ball_r, 10)
   rectfill(pad_x, pad_y, pad_x + pad_w, pad_y + pad_h, 7)
   rectfill(0, 0, 128, bar_h, 0)
+
+  -- serve preview
+  line(ball_x, ball_y, ball_x + ball_dx * 5, ball_y + ball_dy * 5, 10)
 
   -- draw bricks
   for i = 1, #brick_x do
