@@ -34,6 +34,32 @@ function serveball()
   ball_dx = 1
   ball_dy = -1
   sticky = true
+  ball_ang = 1
+  chain = 1
+end
+
+function setang(ang)
+  ball_ang = ang
+  if ang == 2 then
+    ball_dx = 0.5 * sign(ball_dx)
+    ball_dy = 1.3 * sign(ball_dy)
+  elseif ang == 0 then
+    ball_dx = 1.3 * sign(ball_dx)
+    ball_dy = 0.5 * sign(ball_dy)
+  else
+    ball_dx = 1 * sign(ball_dx)
+    ball_dy = 1 * sign(ball_dy)
+  end
+end
+
+function sign(n)
+  if n < 0 then
+    return -1
+  elseif n > 0 then
+    return 1
+  else
+    return 0
+  end
 end
 
 function gameover()
@@ -76,6 +102,8 @@ function startgame()
 
   sticky = true
 
+  chain = 1 -- combo chain multiplier
+
   serveball()
 end
 
@@ -86,7 +114,7 @@ function update_game()
   if btn(0) then
     --left
     buttpressed = true
-    pad_dx = -2
+    pad_dx = -2.5
 
     if sticky then
       ball_dx = -1
@@ -96,7 +124,7 @@ function update_game()
   if btn(1) then
     --right
     buttpressed = true
-    pad_dx = 2
+    pad_dx = 2.5
 
     if sticky then
       ball_dx = 1
@@ -137,6 +165,7 @@ function update_game()
     if ball_box(nextx,nexty,pad_x,pad_y,pad_w,pad_h) then
       -- deal with collision
       if deflx_ball_box(ball_x,ball_y,ball_dx,ball_dy,pad_x,pad_y,pad_w,pad_h) then
+        -- ball hit pad on the side
         ball_dx = -ball_dx
         if ball_x < pad_x+pad_w/2 then
           nextx=pad_x-ball_r
@@ -144,15 +173,33 @@ function update_game()
           nextx=pad_x+pad_w+ball_r
         end
       else
+        -- ball hit pad on top/bottom
         ball_dy = -ball_dy
         if ball_y > pad_y then
+          -- bottom
           nexty=pad_y+pad_h+ball_r
         else
+          -- top
           nexty=pad_y-ball_r
+          if abs(pad_dx) > 2 then
+            -- change angle
+            if sign(pad_dx) == sign(ball_dx) then
+              -- ball and pad moving same direction
+              -- flatten angle
+              setang(mid(0, ball_ang - 1, 2))
+            else
+              -- raise angle
+              if ball_ang == 2 then
+                ball_dx = -ball_dx
+              else 
+                setang(mid(0, ball_ang + 1, 2))
+              end
+            end
+          end
         end
       end
       sfx(1)
-      points+=1
+      chain = 1
     end
 
 
@@ -168,9 +215,11 @@ function update_game()
           end
         end
         brickhit = true
-        sfx(3)
-        points += 1
+        sfx(2 + chain)
         brick_v[i] = false
+        points += 10 * chain
+        chain += 1
+        chain = mid(1, chain, 7)
       end
     end
 
@@ -205,8 +254,11 @@ function draw_game()
   rectfill(pad_x, pad_y, pad_x + pad_w, pad_y + pad_h, 7)
   rectfill(0, 0, 128, bar_h, 0)
 
+
   -- serve preview
-  line(ball_x, ball_y, ball_x + ball_dx * 5, ball_y + ball_dy * 5, 10)
+  if sticky then
+    line(ball_x, ball_y, ball_x + ball_dx * 5, ball_y + ball_dy * 5, 10)
+  end
 
   -- draw bricks
   for i = 1, #brick_x do
@@ -217,6 +269,11 @@ function draw_game()
 
   print("lives:"..lives, 1, 1, 7)
   print("points:"..points, 40, 1, 7)
+  print("chain:"..chain, 100, 1, 7)
+
+  -- debug
+  print(ball_dx, 1, 20, 7)
+  print(ball_dy, 1, 40, 7)
 end
 
 function draw_start()
