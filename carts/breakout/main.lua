@@ -1,6 +1,8 @@
 function _init()
   cls()
   mode = "start"
+  level = "b8x/b9/b9/b9"
+  debug = ""
 end
 
 function _update60()
@@ -13,20 +15,43 @@ function _update60()
   end
 end
 
-function buildbricks()
+function buildbricks(lvl)
   brick_x = {}
   brick_y = {}
   brick_v = {}
 
-  local i
+  local i, j, k, chr, last
 
-  for i = 1, 66 do
-    add(brick_x, 4 + ((i - 1) % 11) *(brick_w + 2))
-    add(brick_y, 20+flr((i - 1) / 11)*(brick_h + 2))
-    add(brick_v,true)
+  j = 0
+  for i = 1, #lvl do
+    j += 1
+    chr = sub(lvl, i, i)
+    if chr == "b" then
+      last = "b"
+      add(brick_x, 4 + ((j - 1) % 11) *(brick_w + 2))
+      add(brick_y, 20+flr((j - 1) / 11)*(brick_h + 2))
+      add(brick_v,true)
+    elseif chr == "x" then
+      last = "x"
+
+    elseif chr == "/" then
+      j = (flr((j - 1) / 11) + 1) * 11
+    elseif chr >= "1" and chr <= "9" then
+      debug = chr
+      for k = 1, chr + 0 do
+        if last == "b" then
+          add(brick_x, 4 + ((j - 1) % 11) *(brick_w + 2))
+          add(brick_y, 20+flr((j - 1) / 11)*(brick_h + 2))
+          add(brick_v,true)
+        elseif last == "x" then
+
+        end
+        j += 1
+      end
+      j -= 1
+    end
   end
 end
-
 
 function serveball()
   ball_x = pad_x + flr(pad_w / 2)
@@ -93,7 +118,7 @@ function startgame()
   brick_w = 9
   brick_h = 4
 
-  buildbricks()
+  buildbricks(level)
 
 
   lives = 3
@@ -267,13 +292,13 @@ function draw_game()
     end
   end
 
-  print("lives:"..lives, 1, 1, 7)
-  print("points:"..points, 40, 1, 7)
-  print("chain:"..chain, 100, 1, 7)
-
-  -- debug
-  print(ball_dx, 1, 20, 7)
-  print(ball_dy, 1, 40, 7)
+  if debug == "" then
+    print("lives:"..lives, 1, 1, 7)
+    print("points:"..points, 40, 1, 7)
+    print("chain:"..chain, 100, 1, 7)
+  else
+    print(debug, 1, 1, 7)
+  end
 end
 
 function draw_start()
