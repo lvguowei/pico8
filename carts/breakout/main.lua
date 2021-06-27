@@ -1,7 +1,10 @@
 function _init()
   cls()
   mode = "start"
-  level = "b8x/b9/b9/b9"
+  levelnum = 1
+  levels = {}
+  levels[1] = "x4b"
+  levels[2] = "x7b"
   debug = ""
 end
 
@@ -12,6 +15,8 @@ function _update60()
     update_start()
   elseif mode == "gameover" then
     update_gameover()
+  elseif mode == "levelover" then
+    update_levelover()
   end
 end
 
@@ -53,6 +58,15 @@ function buildbricks(lvl)
   end
 end
 
+function levelfinished()
+  for i = 1, #brick_v do
+    if brick_v[i] == true then
+      return false
+    end
+  end
+  return true
+end
+
 function serveball()
   ball_x = pad_x + flr(pad_w / 2)
   ball_y = pad_y - ball_r - 1
@@ -91,15 +105,25 @@ function gameover()
   mode = "gameover"
 end
 
+function levelover()
+  mode = "levelover"
+end
+
 function update_start()
-  if btn(5) then
+  if btnp(5) then
     startgame()
   end
 end
 
 function update_gameover()
-  if btn(5) then
+  if btnp(5) then
     startgame()
+  end
+end
+
+function update_levelover()
+  if btnp(5) then
+    nextlevel()
   end
 end
 
@@ -118,6 +142,10 @@ function startgame()
   brick_w = 9
   brick_h = 4
 
+  levelnum = 1
+
+  level = levels[levelnum]
+
   buildbricks(level)
 
 
@@ -129,6 +157,28 @@ function startgame()
 
   chain = 1 -- combo chain multiplier
 
+  serveball()
+end
+
+function nextlevel()
+  pad_x = 52
+  pad_y = 120
+  pad_dx = 0
+  pad_dy = 0
+  pad_w = 24
+  pad_h = 3
+  brick_w = 9
+  brick_h = 4
+  levelnum += 1
+  if levelnum > #levels then
+    mode = "start"
+    return
+  end
+  mode = "game"
+  level = levels[levelnum]
+  buildbricks(level)
+  sticky = true
+  chain = 1 -- combo chain multiplier
   serveball()
 end
 
@@ -227,7 +277,6 @@ function update_game()
       chain = 1
     end
 
-
     -- check if ball hit brick
     brickhit = false
     for i = 1, #brick_x do
@@ -245,6 +294,10 @@ function update_game()
         points += 10 * chain
         chain += 1
         chain = mid(1, chain, 7)
+        if levelfinished() then
+          _draw()
+          levelover()
+        end
       end
     end
 
@@ -270,6 +323,8 @@ function _draw()
     draw_start()
   elseif mode == "gameover" then
     draw_gameover()
+  elseif mode == "levelover" then
+    draw_levelover()
   end
 end
 
@@ -311,6 +366,12 @@ function draw_gameover()
   rectfill(0, 60, 128, 76, 0)
   print("game over", 46, 62, 7)
   print("press X to restart", 27, 68, 6)
+end
+
+function draw_levelover()
+  rectfill(0, 60, 128, 76, 0)
+  print("stage clear!", 46, 62, 7)
+  print("press X to continue", 27, 68, 6)
 end
 
 function ball_box(bx, by, box_x, box_y, box_w, box_h)
