@@ -5,6 +5,7 @@ function _init()
   levels = {}
   levels[1] = "x4b"
   levels[2] = "x7b"
+  levels[1] = "ixhxsxpxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbx"
   debug = ""
 end
 
@@ -21,9 +22,18 @@ function _update60()
 end
 
 function buildbricks(lvl)
+
+  -- b -> normal brick
+  -- x -> empty space
+  -- i -> indestructable brick
+  -- h -> hardened brick
+  -- s -> sploding brick
+  -- p -> power up brick
+
   brick_x = {}
   brick_y = {}
   brick_v = {}
+  brick_t = {}
 
   local i, j, k, chr, last
 
@@ -31,11 +41,9 @@ function buildbricks(lvl)
   for i = 1, #lvl do
     j += 1
     chr = sub(lvl, i, i)
-    if chr == "b" then
-      last = "b"
-      add(brick_x, 4 + ((j - 1) % 11) *(brick_w + 2))
-      add(brick_y, 20+flr((j - 1) / 11)*(brick_h + 2))
-      add(brick_v,true)
+    if chr == "b" or chr == "i" or chr == "h" or chr == "s" or chr == "p" then
+      last = chr
+      addbrick(j, chr)
     elseif chr == "x" then
       last = "x"
 
@@ -44,18 +52,23 @@ function buildbricks(lvl)
     elseif chr >= "1" and chr <= "9" then
       debug = chr
       for k = 1, chr + 0 do
-        if last == "b" then
-          add(brick_x, 4 + ((j - 1) % 11) *(brick_w + 2))
-          add(brick_y, 20+flr((j - 1) / 11)*(brick_h + 2))
-          add(brick_v,true)
+        if last == "b" or last == "i" or last == "h" or last == "s" or last == "p" then
+          addbrick(j, last)
         elseif last == "x" then
-
+          -- pass
         end
         j += 1
       end
       j -= 1
     end
   end
+end
+
+function addbrick(_i, _t)
+  add(brick_x, 4 + ((_i - 1) % 11) *(brick_w + 2))
+  add(brick_y, 20+flr((_i - 1) / 11)*(brick_h + 2))
+  add(brick_v,true)
+  add(brick_t, _t)
 end
 
 function levelfinished()
@@ -343,7 +356,18 @@ function draw_game()
   -- draw bricks
   for i = 1, #brick_x do
     if brick_v[i] then
-      rectfill(brick_x[i], brick_y[i], brick_x[i] + brick_w, brick_y[i] + brick_h, 14)
+      if brick_t[i] == "b" then
+        brickcol = 14
+      elseif brick_t[i] == "i" then
+        brickcol = 5
+      elseif brick_t[i] == "h" then
+        brickcol = 15
+      elseif brick_t[i] == "s" then
+        brickcol = 10
+      elseif brick_t[i] == "p" then
+        brickcol = 12
+      end
+      rectfill(brick_x[i], brick_y[i], brick_x[i] + brick_w, brick_y[i] + brick_h, brickcol)
     end
   end
 
